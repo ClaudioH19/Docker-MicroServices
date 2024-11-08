@@ -1,0 +1,73 @@
+/* Fondo del sitio */
+body {
+    background-color: #0d1b2a; /* Azul oscuro espacial */
+    color: #ffffff; /* Texto blanco */
+    font-family: 'Arial', sans-serif;
+    animation: fadeInBackground 2s ease-in-out;
+}
+
+@keyframes fadeInBackground {
+    from { background-color: #000000; }
+    to { background-color: #0d1b2a; }
+}
+
+/* Animación de entrada suave para contenedores */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Contenedor principal */
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #1b263b; /* Azul profundo */
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(0, 209, 255, 0.5); /* Sombra azulada */
+    animation: fadeIn 1.5s ease-in-out;
+}
+
+/* Información de lanzamiento */
+.launch-info p {
+    font-size: 1.2em;
+    animation: fadeIn 2s ease-in-out;
+}
+
+.launch-info ul {
+    list-style: none;
+    padding: 0;
+}
+
+.launch-info li {
+    background-color: #0a84ff; /* Azul brillante */
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 10px;
+    text-align: center;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    animation: fadeIn 2s ease-in-out;
+}
+
+/* Efecto hover para los cohetes */
+.launch-info li:hover {
+    background-color: #0d47a1; /* Azul más oscuro */
+    color: #ffffff; /* Texto blanco */
+    transform: scale(1.05); /* Efecto de agrandamiento */
+}
+
+/* Animación de pulsación suave en hover */
+button:hover, a:hover {
+    background-color: #00d1ff;
+    color: #0d1b2a;
+    border: 2px solid #ffffff;
+    transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
+    transform: scale(1.1); /* Agrandamiento al hacer hover */
+}
+
+/* Fuente de los datos */
+p {
+    color: #b0c7d6; /* Blanco suave */
+    text-align: center;
+    animation: fadeIn 2s ease-in-out;
+}

@@ -1,0 +1,29 @@
+filebeat.inputs:
+  - type: container
+    enabled: true
+    paths:
+      - /var/lib/docker/containers/*/*.log
+    processors:
+      - add_docker_metadata: ~
+      - add_fields:
+          target: ''
+          fields:
+            log_detail: "brief"          # Indica que es un log breve
+            container_state: "running"   # estado inicial
+    multiline.pattern: '^\s'
+    multiline.negate: false
+    multiline.match: after
+
+output.logstash:
+  hosts: ["logstash:5044"]
+
+setup.kibana:
+  host: "http://kibana:5601"
+  username: "elastic"
+  password: "${ELASTICSEARCH_PASSWORD}"
+
+filebeat.modules:
+  - module: redis
+    log:
+      enabled: true
+      var.paths: ["./redis_logs:/var/log/redis"]

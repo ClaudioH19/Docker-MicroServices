@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microservices Frontend con SPACEX</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Microservices Frontend SPACEX</h1>
+        <h2>Usando backend: {{container_info.id_contenedor}}</h2>
+        <div class="launch-info">
+            <p><strong>Lanzamiento:</strong></p>
+            <p><strong>Nombre del cohete:</strong> {{ container_info.name }}</p>
+            <p><strong>Fecha de lanzamiento:</strong> {{ container_info.date_utc }}</p>
+            <p><strong>Estatus:</strong> {{ container_info.success }}</p>
+            <p><strong>Detalles:</strong> {{ container_info.details }}</p>
+
+            {% if container_info.other_rockets and container_info.other_rockets['data'] %}
+                <ul>
+                    {% for rocket in container_info.other_rockets['data'] %}
+                        <li>{{ rocket['rocket_name'] }}</li>
+                    {% endfor %}
+                </ul>
+                <p>Fuente de los datos: {{ container_info.other_rockets['source'] }}</p>
+                
+                {% if container_info.other_rockets['source'] == 'database' %}
+                    <p>Los datos fueron obtenidos de la base de datos PostgreSQL.</p>
+                {% else %}
+                    <p>Los datos fueron obtenidos de Redis (caché).</p>
+                {% endif %}
+            {% else %}
+                <p>No se encontraron datos de cohetes.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

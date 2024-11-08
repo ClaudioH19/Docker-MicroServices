@@ -1,0 +1,246 @@
+version: '3'
+services:
+
+  nginx-load-balancer:
+    image: nginx:latest
+    container_name: nginx_load_balancer
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - backend_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      log_type: "load_balancer"
+      env: "production"
+      role: "load_balancer"
+      component: "nginx"
+
+  frontend:
+    build: ./frontend
+    container_name: nginx_server
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+      - ./frontend/templates:/usr/share/nginx/html/templates
+    depends_on:
+      - nginx-load-balancer
+    networks:
+      - frontend_net
+      - backend_net
+    labels:
+      log_type: "access"
+      env: "production"
+
+  backend1:
+    build: ./backend
+    container_name: backend1
+    volumes:
+      - ./backend:/app
+    env_file:
+      - ./backend/.env  
+    networks:
+      - backend_net
+      - db_net
+      - redis_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      log_type: "backend"
+      env: "production"
+      role: "backend"
+      component: "app"
+      instance: "backend1"
+
+  backend2:
+    build: ./backend
+    container_name: backend2
+    volumes:
+      - ./backend:/app
+    env_file:
+      - ./backend/.env  
+    networks:
+      - backend_net
+      - db_net
+      - redis_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      log_type: "backend"
+      env: "production"
+      role: "backend"
+      component: "app"
+      instance: "backend2"
+
+  backend3:
+    build: ./backend
+    container_name: backend3
+    volumes:
+      - ./backend:/app
+    env_file:
+      - ./backend/.env  
+    networks:
+      - backend_net
+      - db_net
+      - redis_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      log_type: "backend"
+      env: "production"
+      role: "backend"
+      component: "app"
+      instance: "backend3"
+
+  db:
+    image: postgres:latest
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: app_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init_db_rockets.sql:/docker-entrypoint-initdb.d/init_db_rockets.sql
+      - ./pg_logs:/var/log/postgresql
+    ports:
+      - "5432:5432"
+    networks:
+      - db_net
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "user"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    labels:
+      log_type: "database"
+      env: "production"
+      role: "database"
+      component: "postgres"
+
+  redis:
+    image: redis:latest
+    container_name: redis_cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./redis_logs:/var/log/redis
+    networks:
+      - redis_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      log_type: "cache"
+      env: "production"
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.2
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - "xpack.security.enabled=true"
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+    networks:
+      - backend_net
+    ports:
+      - "9200:9200"
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.15.2
+    container_name: logstash
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    environment:
+      - "xpack.monitoring.enabled=false"
+    networks:
+      - backend_net
+    ports:
+      - "5044:5044"
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.15.2
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=elastic
+      - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
+    networks:
+      - backend_net
+    ports:
+      - "5601:5601"
+
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:7.15.2
+    container_name: filebeat
+    user: root
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml
+    command: >
+      /bin/bash -c "chmod go-w /usr/share/filebeat/filebeat.yml &&
+                    /usr/local/bin/docker-entrypoint -e"
+    environment:
+      - LOGSTASH_HOST=logstash:5044
+      - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
+    depends_on:
+      - logstash
+    networks:
+      - backend_net
+
+  metricbeat:
+    image: docker.elastic.co/beats/metricbeat:7.15.2  # Cambia a la versión que necesites
+    container_name: metricbeat
+    user: root  # Permite acceso al socket Docker y archivos del host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # Acceso al socket de Docker
+      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup       # Acceso a la información del sistema
+      - /proc:/hostfs/proc                         # Acceso a información de procesos
+      - ./metricbeat.yml:/usr/share/metricbeat/metricbeat.yml  # Archivo de configuración de Metricbeat
+    environment:
+      - ELASTICSEARCH_HOST=http://elasticsearch:9200
+    networks:
+      - backend_net
+    command: ["-e", "-system.hostfs=/hostfs"]  # Opciones de inicio para Metricbeat
+
+  
+
+networks:
+  frontend_net:
+    driver: bridge
+
+  backend_net:
+    driver: bridge
+
+  db_net:
+    driver: bridge
+  
+  redis_net:
+    driver: bridge
+
+
+volumes:
+  postgres_data:
+  redis_data:
+  frontend:

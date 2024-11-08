@@ -1,0 +1,12 @@
+# Configuración de Metricbeat para enviar datos a Elasticsearch
+output.elasticsearch:
+  hosts: ["http://localhost:9200"]  # Cambia esto según la dirección de tu Elasticsearch
+
+# Configuración para habilitar el módulo Docker
+metricbeat.modules:
+  - module: docker
+    metricsets: ["container"]  # Incluye métricas de contenedores, incluido su estado
+    hosts: ["unix:///var/run/docker.sock"]  # Ruta al socket de Docker en el host
+    period: 10s  # Intervalo de recolección de datos cada 10 segundos
+    processors:
+      - add_docker_metadata: ~  # Agrega metadatos adicionales de Docker a los eventos
